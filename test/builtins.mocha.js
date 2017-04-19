@@ -33,6 +33,7 @@ describe('Primitive types', function() {
 
     assert.throws(function() { fn({}); }, /too small/i);
     assert.throws(function() { fn(null); }, /too small/i);
+    assert.throws(function() { fn(); }, /too small/i);
     assert.throws(function() { fn(
         'just a plain string > 40 chars, above maxSize'); }, /too large/i);
   });
