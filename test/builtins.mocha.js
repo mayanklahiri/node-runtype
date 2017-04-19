@@ -14,11 +14,10 @@ describe('Primitive types', function() {
       type: 'alphanumeric',
     });
     assert.doesNotThrow(function() { fn('abcdef0123'); });
-    assert.doesNotThrow(function() { fn('_'); });
     assert.doesNotThrow(function() { fn(''); });
 
-    assert.throws(function() { fn('..1/12'); }, /outside the alphanumeric/i);
-    assert.throws(function() { fn(' abc'); }, /outside the alphanumeric/i);
+    assert.throws(function() { fn('. .1/12'); }, /outside the alphanumeric/i);
+    assert.throws(function() { fn('_abc'); }, /outside the alphanumeric/i);
     assert.throws(function() { fn('0123?'); }, /outside the alphanumeric/i);
   });
 
@@ -122,7 +121,7 @@ describe('Primitive types', function() {
     assert.doesNotThrow(function() { fn('a'); });
     assert.doesNotThrow(function() { fn('b'); });
     assert.doesNotThrow(function() { fn('c'); });
-    assert.throws(function() { fn('d'); }, /not valid/i);
+    assert.throws(function() { fn('d'); }, /factor "d" is not valid/i);
   });
 
 
@@ -196,7 +195,8 @@ describe('Primitive types', function() {
       value: 'abcd',
     });
     assert.doesNotThrow(function() { fn('abcd'); });
-    assert.throws(function() { fn('abc'); }, /expected literal <abcd>/i);
+    assert.throws(
+        function() { fn('abc'); }, /expected literal "abcd", got "abc"./i);
   });
 
 
