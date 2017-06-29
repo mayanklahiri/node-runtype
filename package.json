@@ -4,6 +4,7 @@
   "description": "Runtime type checking for Javascript.",
   "main": "lib/index.js",
   "scripts": {
+    "jsdoc": "node_modules/.bin/jsdoc lib/*.js -d doc",
     "coverage": "node_modules/.bin/istanbul cover node_modules/.bin/_mocha test",
     "test": "node_modules/.bin/mocha --check-leaks test"
   },
@@ -21,6 +22,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "istanbul": "^0.4.5",
+    "jsdoc": "^3.4.3",
     "mocha": "^3.3.0"
   },
   "dependencies": {
