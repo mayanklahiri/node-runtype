@@ -4,7 +4,7 @@
   "description": "Runtime type checking for Javascript.",
   "main": "lib/index.js",
   "scripts": {
-    "jsdoc": "node_modules/.bin/jsdoc lib/*.js -d doc",
+    "jsdoc": "node_modules/.bin/jsdoc lib/*.js -d doc -c .jsdoc.json",
     "coverage": "node_modules/.bin/istanbul cover node_modules/.bin/_mocha test",
     "test": "node_modules/.bin/mocha --check-leaks test"
   },
