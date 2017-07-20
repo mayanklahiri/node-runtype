@@ -1,36 +1,34 @@
-var _ = require('lodash')
-  , assert = require('chai').assert
-  , typename = require('../lib/typename')
-  ;
+const assert = require('chai').assert,
+  typename = require('../lib/typename')
+;
 
 
-describe('Type reflection', function() {
-
-  it('should recognize Buffer', function() {
+describe('Type reflection', () => {
+  it('should recognize Buffer', () => {
     assert.strictEqual('buffer', typename(Buffer.from([1, 2, 3])));
   });
 
-  it('should recognize arrays', function() {
+  it('should recognize arrays', () => {
     assert.strictEqual('array', typename([1, 2, 3]));
   });
 
-  it('should recognize object', function() {
+  it('should recognize object', () => {
     assert.strictEqual('object', typename({}));
   });
 
-  it('should recognize boolean', function() {
+  it('should recognize boolean', () => {
     assert.strictEqual('boolean', typename(true));
   });
 
-  it('should recognize undefined', function() {
+  it('should recognize undefined', () => {
     assert.strictEqual('undefined', typename(undefined));
   });
 
-  it('should recognize null', function() {
+  it('should recognize null', () => {
     assert.strictEqual('null', typename(null));
   });
 
-  it('should recognize function', function() {
-    assert.strictEqual('function', typename(function() {}));
+  it('should recognize function', () => {
+    assert.strictEqual('function', typename(() => {}));
   });
 });

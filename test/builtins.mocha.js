@@ -1,58 +1,55 @@
-var _ = require('lodash')
-  , assert = require('chai').assert
-  , builtins = require('..').builtins
-  , def = require('..').schemaDef
-  , fmt = require('util').format
-  ;
+const assert = require('chai').assert,
+  builtins = require('..').builtins
+;
 
 
-describe('Primitive types', function() {
-
-
-  it('should validate "alphanumeric"', function() {
-    var fn = builtins.alphanumeric.bind({}, {
+describe('Primitive types', () => {
+  it('should validate "alphanumeric"', () => {
+    const fn = builtins.alphanumeric.bind({}, {
       type: 'alphanumeric',
     });
-    assert.doesNotThrow(function() { fn('abcdef0123'); });
-    assert.doesNotThrow(function() { fn(''); });
+    assert.doesNotThrow(() => { fn('abcdef0123'); });
+    assert.doesNotThrow(() => { fn(''); });
 
-    assert.throws(function() { fn('. .1/12'); }, /outside the alphanumeric/i);
-    assert.throws(function() { fn('_abc'); }, /outside the alphanumeric/i);
-    assert.throws(function() { fn('0123?'); }, /outside the alphanumeric/i);
+    assert.throws(() => { fn('. .1/12'); }, /outside the alphanumeric/i);
+    assert.throws(() => { fn('_abc'); }, /outside the alphanumeric/i);
+    assert.throws(() => { fn('0123?'); }, /outside the alphanumeric/i);
   });
 
 
-  it('should validate "any"', function() {
-    var fn = builtins.any.bind({}, {
+  it('should validate "any"', () => {
+    const fn = builtins.any.bind({}, {
       type: 'any',
       minSize: 5,
       maxSize: 40,
     });
-    assert.doesNotThrow(function() { fn({nested: 'string'}); });
-    assert.doesNotThrow(function() { fn('just a plain string > 10 chars'); });
+    assert.doesNotThrow(() => { fn({ nested: 'string' }); });
+    assert.doesNotThrow(() => { fn('just a plain string > 10 chars'); });
 
-    assert.throws(function() { fn({}); }, /too small/i);
-    assert.throws(function() { fn(null); }, /too small/i);
-    assert.throws(function() { fn(); }, /too small/i);
-    assert.throws(function() { fn(
-        'just a plain string > 40 chars, above maxSize'); }, /too large/i);
+    assert.throws(() => { fn({}); }, /too small/i);
+    assert.throws(() => { fn(null); }, /too small/i);
+    assert.throws(() => { fn(); }, /too small/i);
+    assert.throws(() => {
+      fn(
+        'just a plain string > 40 chars, above maxSize');
+    }, /too large/i);
   });
 
 
-  it('should validate "base64_buffer"', function() {
-    var fn = builtins.base64_buffer.bind({}, {
-      type: 'base64_buffer'
+  it('should validate "base64_buffer"', () => {
+    let fn = builtins.base64_buffer.bind({}, {
+      type: 'base64_buffer',
     });
 
-    assert.doesNotThrow(function() { fn('abcdef=='); });
-    assert.doesNotThrow(function() { fn('abcdefg='); });
-    assert.doesNotThrow(function() { fn('abcdefgh'); });
-    assert.doesNotThrow(function() { fn('abcde==='); });
+    assert.doesNotThrow(() => { fn('abcdef=='); });
+    assert.doesNotThrow(() => { fn('abcdefg='); });
+    assert.doesNotThrow(() => { fn('abcdefgh'); });
+    assert.doesNotThrow(() => { fn('abcde==='); });
 
-    assert.throws(function() { fn('abcdefghi'); }, /invalid Base64/i);
-    assert.throws(function() { fn('cat and mouse'); }, /invalid Base64/i);
-    assert.throws(function() { fn('"jsonstr"'); }, /invalid Base64/i);
-    assert.throws(function() { fn('===='); }, /invalid Base64/i);
+    assert.throws(() => { fn('abcdefghi'); }, /invalid Base64/i);
+    assert.throws(() => { fn('cat and mouse'); }, /invalid Base64/i);
+    assert.throws(() => { fn('"jsonstr"'); }, /invalid Base64/i);
+    assert.throws(() => { fn('===='); }, /invalid Base64/i);
 
     fn = builtins.base64_buffer.bind({}, {
       type: 'base64_buffer',
@@ -60,93 +57,93 @@ describe('Primitive types', function() {
       maxLength: 8,
     });
 
-    assert.doesNotThrow(function() { fn('abcdef=='); });
-    assert.doesNotThrow(function() { fn('abcdefg='); });
-    assert.throws(function() { fn('abcdefghefgh'); }, /<=/i);
-    assert.throws(function() { fn('abcd', />=/); });
+    assert.doesNotThrow(() => { fn('abcdef=='); });
+    assert.doesNotThrow(() => { fn('abcdefg='); });
+    assert.throws(() => { fn('abcdefghefgh'); }, /<=/i);
+    assert.throws(() => { fn('abcd', />=/); });
 
     fn = builtins.base64_buffer.bind({}, {
       type: 'base64_buffer',
     });
-    assert.doesNotThrow(function() { fn(''); });
+    assert.doesNotThrow(() => { fn(''); });
   });
 
 
-  it('should validate "buffer"', function() {
-    var fn = builtins.buffer.bind({}, {
+  it('should validate "buffer"', () => {
+    const fn = builtins.buffer.bind({}, {
       type: 'buffer',
       maxSize: 3,
     });
 
-    assert.doesNotThrow(function() { fn(Buffer.from([0])); });
-    assert.doesNotThrow(function() { fn(Buffer.from([0, 1, 2])); });
+    assert.doesNotThrow(() => { fn(Buffer.from([0])); });
+    assert.doesNotThrow(() => { fn(Buffer.from([0, 1, 2])); });
 
-    assert.throws(function() { fn(Buffer.from([0, 1, 2, 4])); });
-    assert.throws(function() { fn('abcdefghi'); }, /got string/i);
-    assert.throws(function() { fn({}); }, /got object/i);
-    assert.throws(function() { fn([]); }, /got array/i);
+    assert.throws(() => { fn(Buffer.from([0, 1, 2, 4])); });
+    assert.throws(() => { fn('abcdefghi'); }, /got string/i);
+    assert.throws(() => { fn({}); }, /got object/i);
+    assert.throws(() => { fn([]); }, /got array/i);
   });
 
 
-  it('should validate "boolean"', function() {
-    var fn = builtins.boolean.bind({}, {type: 'boolean'});
+  it('should validate "boolean"', () => {
+    const fn = builtins.boolean.bind({}, { type: 'boolean' });
 
-    assert.doesNotThrow(function() { fn(true); });
-    assert.doesNotThrow(function() { fn(false); });
+    assert.doesNotThrow(() => { fn(true); });
+    assert.doesNotThrow(() => { fn(false); });
 
-    assert.throws(function() { fn('0.0.0.'); }, /got string/i);
-    assert.throws(function() { fn(); }, /got undefined/i);
-    assert.throws(function() { fn('true'); }, /got string/i);
-    assert.throws(function() { fn(1); }, /got number/i);
+    assert.throws(() => { fn('0.0.0.'); }, /got string/i);
+    assert.throws(() => { fn(); }, /got undefined/i);
+    assert.throws(() => { fn('true'); }, /got string/i);
+    assert.throws(() => { fn(1); }, /got number/i);
   });
 
 
-  it('should validate "epoch_timestamp_ms"', function() {
-    var fn = builtins.epoch_timestamp_ms.bind({}, {type: 'epoch_timestamp_ms'});
+  it('should validate "epoch_timestamp_ms"', () => {
+    const fn = builtins.epoch_timestamp_ms.bind({}, { type: 'epoch_timestamp_ms' });
 
-    assert.doesNotThrow(function() { fn(Date.now()); });
-    assert.doesNotThrow(function() { fn(Date.now() + 1e5); });
+    assert.doesNotThrow(() => { fn(Date.now()); });
+    assert.doesNotThrow(() => { fn(Date.now() + 1e5); });
 
-    assert.throws(function() { fn((new Date())); }, /expected a number/i);
-    assert.throws(function() { fn((new Date()).toISOString()); }, /expected a number/i);
-    assert.throws(function() { fn('127.0.0.1.0'); }, /expected a number/i);
-    assert.throws(function() { fn(1472581934); }, /distant past/i);
+    assert.throws(() => { fn((new Date())); }, /expected a number/i);
+    assert.throws(() => { fn((new Date()).toISOString()); }, /expected a number/i);
+    assert.throws(() => { fn('127.0.0.1.0'); }, /expected a number/i);
+    assert.throws(() => { fn(1472581934); }, /distant past/i);
   });
 
 
-  it('should validate "factor"', function() {
-    var fn = builtins.factor.bind({}, {
+  it('should validate "factor"', () => {
+    const fn = builtins.factor.bind({}, {
       type: 'factor',
       factors: ['a', 'b', 'c'],
     });
-    assert.doesNotThrow(function() { fn('a'); });
-    assert.doesNotThrow(function() { fn('b'); });
-    assert.doesNotThrow(function() { fn('c'); });
-    assert.throws(function() { fn('d'); }, /factor "d" is not valid/i);
+    assert.doesNotThrow(() => { fn('a'); });
+    assert.doesNotThrow(() => { fn('b'); });
+    assert.doesNotThrow(() => { fn('c'); });
+    assert.throws(() => { fn('d'); }, /factor "d" is not valid/i);
   });
 
 
-  it('should validate "function"', function() {
-    var fn = builtins.function.bind({}, {
+  it('should validate "function"', () => {
+    const fn = builtins.function.bind({}, {
       type: 'function',
     });
-    assert.throws(function() { fn('a'); }, /expected a function/i);
-    assert.throws(function() { fn(); }, /expected a function/i);
-    assert.doesNotThrow(function() { fn(function() {}); });
+    assert.throws(() => { fn('a'); }, /expected a function/i);
+    assert.throws(() => { fn(); }, /expected a function/i);
+    assert.doesNotThrow(() => { fn(() => {}); });
   });
 
 
-  it('should validate "hex_buffer"', function() {
-    var fn = builtins.hex_buffer.bind({}, {
+  it('should validate "hex_buffer"', () => {
+    let fn = builtins.hex_buffer.bind({}, {
       type: 'hex_buffer',
     });
 
-    assert.doesNotThrow(function() { fn('abcdef0123456789'); });
-    assert.doesNotThrow(function() { fn('0'); });
+    assert.doesNotThrow(() => { fn('abcdef0123456789'); });
+    assert.doesNotThrow(() => { fn('0'); });
 
-    assert.throws(function() { fn(0); }, /expected a string/i);
-    assert.throws(function() { fn('0xff'); }, /not in the hexadecimal/i);
-    assert.throws(function() { fn('deadpork'); }, /not in the hexadecimal/i);
+    assert.throws(() => { fn(0); }, /expected a string/i);
+    assert.throws(() => { fn('0xff'); }, /not in the hexadecimal/i);
+    assert.throws(() => { fn('deadpork'); }, /not in the hexadecimal/i);
 
     fn = builtins.hex_buffer.bind({}, {
       type: 'hex_buffer',
@@ -154,78 +151,77 @@ describe('Primitive types', function() {
       maxLength: 4,
     });
 
-    assert.doesNotThrow(function() { fn('abcdef'); });
-    assert.doesNotThrow(function() { fn('abcdefab'); });
+    assert.doesNotThrow(() => { fn('abcdef'); });
+    assert.doesNotThrow(() => { fn('abcdefab'); });
 
-    assert.throws(function() { fn(0); }, /expected a string/i);
-    assert.throws(function() { fn('0xff'); }, /not in the hexadecimal/i);
-    assert.throws(function() { fn('deadpork'); }, /not in the hexadecimal/i);
+    assert.throws(() => { fn(0); }, /expected a string/i);
+    assert.throws(() => { fn('0xff'); }, /not in the hexadecimal/i);
+    assert.throws(() => { fn('deadpork'); }, /not in the hexadecimal/i);
   });
 
 
-  it('should validate "integer"', function() {
-    var fn = builtins.integer.bind({}, {
+  it('should validate "integer"', () => {
+    const fn = builtins.integer.bind({}, {
       type: 'integer',
       minValue: 10,
       maxValue: 100,
     });
-    assert.doesNotThrow(function() { fn(10); });
-    assert.doesNotThrow(function() { fn(100); });
-    assert.throws(function() { fn(9); }, />=/i);
-    assert.throws(function() { fn(101); }, /<=/i);
-    assert.throws(function() { fn(11.104); }, /expected an integer/i);
+    assert.doesNotThrow(() => { fn(10); });
+    assert.doesNotThrow(() => { fn(100); });
+    assert.throws(() => { fn(9); }, />=/i);
+    assert.throws(() => { fn(101); }, /<=/i);
+    assert.throws(() => { fn(11.104); }, /expected an integer/i);
   });
 
 
-  it('should validate "ip_address"', function() {
-    var fn = builtins.ip_address.bind({}, {type: 'ip_address'});
+  it('should validate "ip_address"', () => {
+    const fn = builtins.ip_address.bind({}, { type: 'ip_address' });
 
-    assert.doesNotThrow(function() { fn('127.0.0.1'); });
-    assert.doesNotThrow(function() { fn('1.1.1.1'); });
-    assert.doesNotThrow(function() { fn('FF02:0:0:0:0:0:0:12'); });
+    assert.doesNotThrow(() => { fn('127.0.0.1'); });
+    assert.doesNotThrow(() => { fn('1.1.1.1'); });
+    assert.doesNotThrow(() => { fn('FF02:0:0:0:0:0:0:12'); });
 
-    assert.throws(function() { fn('0.0.0.'); }, /not an ip address/i);
-    assert.throws(function() { fn('a.b.c.d'); }, /not an ip address/i);
-    assert.throws(function() { fn('127.0.0.1.0'); }, /not an ip address/i);
+    assert.throws(() => { fn('0.0.0.'); }, /not an ip address/i);
+    assert.throws(() => { fn('a.b.c.d'); }, /not an ip address/i);
+    assert.throws(() => { fn('127.0.0.1.0'); }, /not an ip address/i);
   });
 
 
-  it('should validate "literal"', function() {
-    var fn = builtins.literal.bind({}, {
+  it('should validate "literal"', () => {
+    const fn = builtins.literal.bind({}, {
       type: 'literal',
       value: 'abcd',
     });
-    assert.doesNotThrow(function() { fn('abcd'); });
+    assert.doesNotThrow(() => { fn('abcd'); });
     assert.throws(
-        function() { fn('abc'); }, /expected literal "abcd", got "abc"./i);
+      () => { fn('abc'); }, /expected literal "abcd", got "abc"./i);
   });
 
 
-  it('should validate "number"', function() {
-    var fn = builtins.number.bind({}, {
+  it('should validate "number"', () => {
+    const fn = builtins.number.bind({}, {
       type: 'number',
       minValue: 10.15,
       maxValue: 10.69,
     });
-    assert.doesNotThrow(function() { fn(10.16); });
-    assert.doesNotThrow(function() { fn(10.50); });
-    assert.throws(function() { fn(10); }, />=/i);
-    assert.throws(function() { fn(11); }, /<=/i);
+    assert.doesNotThrow(() => { fn(10.16); });
+    assert.doesNotThrow(() => { fn(10.50); });
+    assert.throws(() => { fn(10); }, />=/i);
+    assert.throws(() => { fn(11); }, /<=/i);
   });
 
 
-  it('should validate "string"', function() {
-    var fn = builtins.string.bind({}, {
+  it('should validate "string"', () => {
+    const fn = builtins.string.bind({}, {
       type: 'string',
       minLength: 1,
       maxLength: 16,
     });
-    assert.doesNotThrow(function() { fn('abcdef0123456789'); });
-    assert.doesNotThrow(function() { fn('0'); });
+    assert.doesNotThrow(() => { fn('abcdef0123456789'); });
+    assert.doesNotThrow(() => { fn('0'); });
 
-    assert.throws(function() { fn(0); }, /expected a string/i);
-    assert.throws(function() { fn(''); }, /too short/i);
-    assert.throws(function() { fn('abcdef0123456789x'); }, /too long/i);
+    assert.throws(() => { fn(0); }, /expected a string/i);
+    assert.throws(() => { fn(''); }, /too short/i);
+    assert.throws(() => { fn('abcdef0123456789x'); }, /too long/i);
   });
-
 });

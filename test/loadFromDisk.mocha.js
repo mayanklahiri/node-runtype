@@ -1,23 +1,21 @@
-var _ = require('lodash')
-  , assert = require('chai').assert
-  , construct = require('..').construct
-  , fmt = require('util').format
-  , loadFromDisk = require('..').loadFromDisk
-  , path = require('path')
+const assert = require('chai').assert,
+  construct = require('..').construct,
+  loadFromDisk = require('..').loadFromDisk,
+  path = require('path')
   ;
 
 
-describe('Type library', function() {
-  it('should load type specifications from disk', function() {
-    assert.throws(function() {
+describe('Type library', () => {
+  it('should load type specifications from disk', () => {
+    assert.throws(() => {
       construct('TypeOnDisk', {
-        testField: 123
+        testField: 123,
       });
     });
     loadFromDisk(path.join(__dirname, 'test_types'));
-    assert.doesNotThrow(function() {
+    assert.doesNotThrow(() => {
       construct('TypeOnDisk', {
-        testField: 123
+        testField: 123,
       });
     });
   });

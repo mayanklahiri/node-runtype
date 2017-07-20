@@ -20,10 +20,10 @@
   "author": "Mayank Lahiri <mayank@iceroad.io>",
   "license": "MIT",
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "^4.1.0",
     "istanbul": "^0.4.5",
-    "jsdoc": "^3.4.3",
-    "mocha": "^3.3.0"
+    "jsdoc": "^3.5.3",
+    "mocha": "^3.4.2"
   },
   "dependencies": {
     "lodash": "^4.17.4"
