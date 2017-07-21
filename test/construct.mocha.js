@@ -120,6 +120,29 @@ describe('construct(): check a value against a schema', () => {
       /"nested": key "extra" is not in the schema/i);
   });
 
+  it('should ignore missing optional values', () => {
+    const schema = {
+      type: 'object',
+      fields: {
+        error: {
+          type: 'string',
+          optional: true,
+        },
+        result: {
+          type: 'any',
+          optional: true,
+        },
+      },
+    };
+
+    assert.doesNotThrow(() => construct(schema, {
+      error: 'yes',
+    }));
+
+    assert.doesNotThrow(() => construct(schema, {
+      result: 'yes',
+    }));
+  });
 
   it('should construct from explicit and library typedefs', () => {
     assert.deepEqual(
@@ -159,16 +182,40 @@ describe('construct(): check a value against a schema', () => {
 
 
   it('should ignore missing, optional fields', () => {
-    const optionalType = {
+    const schema = {
       type: 'object',
       fields: {
-        opto: {
+        auth: {
+          type: 'boolean',
+        },
+        error: {
+          type: 'SampleType',
           optional: true,
-          type: 'integer',
+        },
+        userData: {
+          type: 'any',
+          optional: true,
         },
       },
     };
-    assert.doesNotThrow(() => { construct(optionalType, {}); });
+
+    const input = {
+      auth: true,
+      error: undefined,
+      userData: {
+        someUserData: 123,
+      },
+    };
+
+    const expected = {
+      auth: true,
+      userData: {
+        someUserData: 123,
+      },
+    };
+
+    assert.doesNotThrow(() => { construct(schema, input); });
+    assert.deepEqual(construct(schema, input), expected);
   });
 
 
