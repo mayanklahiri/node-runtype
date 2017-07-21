@@ -328,5 +328,48 @@ describe('construct(): check a value against a schema', () => {
       }
     });
   });
+
+  it('should fill in default values when the option is set', () => {
+    const schema = {
+      type: 'object',
+      fields: {
+        inner: {
+          type: 'object',
+          fields: {
+            res1: {
+              type: 'integer',
+              default: 42,
+            },
+            res2: {
+              type: 'string',
+              default: () => 'sentinel',
+            },
+            res3: {
+              type: 'integer',
+              optional: true,
+            },
+          },
+        },
+      },
+    };
+
+    let input = { inner: {} };
+    const rv = construct(schema, input, { fillDefaults: true });
+    assert.deepEqual(rv, {
+      inner: {
+        res1: 42,
+        res2: 'sentinel',
+      },
+    });
+
+    assert.throws(() => construct(schema, input));
+    input = { inner: { res1: 40, res2: 'cross' } };
+    assert.deepEqual(construct(schema, input), {
+      inner: {
+        res1: 40,
+        res2: 'cross',
+      },
+    });
+  });
 });
 
