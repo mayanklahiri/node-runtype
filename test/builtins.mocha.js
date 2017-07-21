@@ -3,9 +3,9 @@ const assert = require('chai').assert,
 ;
 
 
-describe('Primitive types', () => {
+describe('Builtin, primitive types', () => {
   it('should validate "alphanumeric"', () => {
-    const fn = builtins.alphanumeric.bind({}, {
+    const fn = builtins.alphanumeric.bind(builtins, {
       type: 'alphanumeric',
     });
     assert.doesNotThrow(() => { fn('abcdef0123'); });
@@ -18,7 +18,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "any"', () => {
-    const fn = builtins.any.bind({}, {
+    const fn = builtins.any.bind(builtins, {
       type: 'any',
       minSize: 5,
       maxSize: 40,
@@ -37,21 +37,22 @@ describe('Primitive types', () => {
 
 
   it('should validate "base64_buffer"', () => {
-    let fn = builtins.base64_buffer.bind({}, {
+    let fn = builtins.base64_buffer.bind(builtins, {
       type: 'base64_buffer',
     });
 
     assert.doesNotThrow(() => { fn('abcdef=='); });
     assert.doesNotThrow(() => { fn('abcdefg='); });
     assert.doesNotThrow(() => { fn('abcdefgh'); });
-    assert.doesNotThrow(() => { fn('abcde==='); });
+    assert.doesNotThrow(() => { fn('abcdae=='); });
 
+    assert.throws(() => { fn('abcde==='); });
     assert.throws(() => { fn('abcdefghi'); }, /invalid Base64/i);
     assert.throws(() => { fn('cat and mouse'); }, /invalid Base64/i);
     assert.throws(() => { fn('"jsonstr"'); }, /invalid Base64/i);
     assert.throws(() => { fn('===='); }, /invalid Base64/i);
 
-    fn = builtins.base64_buffer.bind({}, {
+    fn = builtins.base64_buffer.bind(builtins, {
       type: 'base64_buffer',
       minLength: 5,
       maxLength: 8,
@@ -59,10 +60,10 @@ describe('Primitive types', () => {
 
     assert.doesNotThrow(() => { fn('abcdef=='); });
     assert.doesNotThrow(() => { fn('abcdefg='); });
-    assert.throws(() => { fn('abcdefghefgh'); }, /<=/i);
-    assert.throws(() => { fn('abcd', />=/); });
+    assert.throws(() => { fn('abcdefghefgh'); }, /too long/i);
+    assert.throws(() => { fn('abcd', /too short/); });
 
-    fn = builtins.base64_buffer.bind({}, {
+    fn = builtins.base64_buffer.bind(builtins, {
       type: 'base64_buffer',
     });
     assert.doesNotThrow(() => { fn(''); });
@@ -70,7 +71,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "buffer"', () => {
-    const fn = builtins.buffer.bind({}, {
+    const fn = builtins.buffer.bind(builtins, {
       type: 'buffer',
       maxSize: 3,
     });
@@ -86,7 +87,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "boolean"', () => {
-    const fn = builtins.boolean.bind({}, { type: 'boolean' });
+    const fn = builtins.boolean.bind(builtins, { type: 'boolean' });
 
     assert.doesNotThrow(() => { fn(true); });
     assert.doesNotThrow(() => { fn(false); });
@@ -99,7 +100,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "epoch_timestamp_ms"', () => {
-    const fn = builtins.epoch_timestamp_ms.bind({}, { type: 'epoch_timestamp_ms' });
+    const fn = builtins.epoch_timestamp_ms.bind(builtins, { type: 'epoch_timestamp_ms' });
 
     assert.doesNotThrow(() => { fn(Date.now()); });
     assert.doesNotThrow(() => { fn(Date.now() + 1e5); });
@@ -107,34 +108,24 @@ describe('Primitive types', () => {
     assert.throws(() => { fn((new Date())); }, /expected a number/i);
     assert.throws(() => { fn((new Date()).toISOString()); }, /expected a number/i);
     assert.throws(() => { fn('127.0.0.1.0'); }, /expected a number/i);
-    assert.throws(() => { fn(1472581934); }, /distant past/i);
+    assert.throws(() => { fn(1472581934); }, /appears to be seconds/i);
   });
 
 
   it('should validate "factor"', () => {
-    const fn = builtins.factor.bind({}, {
+    const fn = builtins.factor.bind(builtins, {
       type: 'factor',
       factors: ['a', 'b', 'c'],
     });
     assert.doesNotThrow(() => { fn('a'); });
     assert.doesNotThrow(() => { fn('b'); });
     assert.doesNotThrow(() => { fn('c'); });
-    assert.throws(() => { fn('d'); }, /factor "d" is not valid/i);
-  });
-
-
-  it('should validate "function"', () => {
-    const fn = builtins.function.bind({}, {
-      type: 'function',
-    });
-    assert.throws(() => { fn('a'); }, /expected a function/i);
-    assert.throws(() => { fn(); }, /expected a function/i);
-    assert.doesNotThrow(() => { fn(() => {}); });
+    assert.throws(() => { fn('d'); }, /not a valid factor/i);
   });
 
 
   it('should validate "hex_buffer"', () => {
-    let fn = builtins.hex_buffer.bind({}, {
+    let fn = builtins.hex_buffer.bind(builtins, {
       type: 'hex_buffer',
     });
 
@@ -142,13 +133,13 @@ describe('Primitive types', () => {
     assert.doesNotThrow(() => { fn('0'); });
 
     assert.throws(() => { fn(0); }, /expected a string/i);
-    assert.throws(() => { fn('0xff'); }, /not in the hexadecimal/i);
-    assert.throws(() => { fn('deadpork'); }, /not in the hexadecimal/i);
+    assert.throws(() => { fn('0xff'); }, /character set/i);
+    assert.throws(() => { fn('deadpork'); }, /character set/i);
 
-    fn = builtins.hex_buffer.bind({}, {
+    fn = builtins.hex_buffer.bind(builtins, {
       type: 'hex_buffer',
       minLength: 2,
-      maxLength: 4,
+      maxLength: 8,
     });
 
     assert.doesNotThrow(() => { fn('abcdef'); });
@@ -161,7 +152,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "integer"', () => {
-    const fn = builtins.integer.bind({}, {
+    const fn = builtins.integer.bind(builtins, {
       type: 'integer',
       minValue: 10,
       maxValue: 100,
@@ -175,7 +166,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "ip_address"', () => {
-    const fn = builtins.ip_address.bind({}, { type: 'ip_address' });
+    const fn = builtins.ip_address.bind(builtins, { type: 'ip_address' });
 
     assert.doesNotThrow(() => { fn('127.0.0.1'); });
     assert.doesNotThrow(() => { fn('1.1.1.1'); });
@@ -188,18 +179,24 @@ describe('Primitive types', () => {
 
 
   it('should validate "literal"', () => {
-    const fn = builtins.literal.bind({}, {
+    const strLit = builtins.literal.bind(builtins, {
       type: 'literal',
       value: 'abcd',
     });
-    assert.doesNotThrow(() => { fn('abcd'); });
-    assert.throws(
-      () => { fn('abc'); }, /expected literal "abcd", got "abc"./i);
+    assert.doesNotThrow(() => { strLit('abcd'); });
+    assert.throws(() => strLit('abc'), /expected literal "abcd", got "abc"./i);
+
+    const intLit = builtins.literal.bind(builtins, {
+      type: 'literal',
+      value: 123,
+    });
+    assert.doesNotThrow(() => { intLit(123); });
+    assert.throws(() => intLit('abc'), /expected literal 123, got "abc"./i);
   });
 
 
   it('should validate "number"', () => {
-    const fn = builtins.number.bind({}, {
+    const fn = builtins.number.bind(builtins, {
       type: 'number',
       minValue: 10.15,
       maxValue: 10.69,
@@ -212,7 +209,7 @@ describe('Primitive types', () => {
 
 
   it('should validate "string"', () => {
-    const fn = builtins.string.bind({}, {
+    const fn = builtins.string.bind(builtins, {
       type: 'string',
       minLength: 1,
       maxLength: 16,
