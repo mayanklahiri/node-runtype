@@ -280,12 +280,12 @@ describe('construct(): check a value against a schema', () => {
       () => construct(perIndexTyped, [sampleType, sampleType]), /expected literal/);
 
     assert.throws(
-      () => construct(perIndexTyped, ['junk']), /expected literal/);
+      () => construct(perIndexTyped, ['junk']), /array size/);
 
 
     assert.throws(
-      () => construct(perIndexTyped, ['a_literal_string', sampleType, sampleType], { strict: true }),
-      /more elements than allowed/);
+      () => construct(perIndexTyped, ['a_literal_string', sampleType, sampleType]),
+      /array size/);
   });
 
 
