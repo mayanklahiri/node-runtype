@@ -3,15 +3,14 @@ const _ = require('lodash'),
   async = require('async'),
   def = require('..').schemaDef,
   enforce = require('..').enforce,
-  types = require('..').library,
-  fmt = require('util').format
+  library = require('..').library
   ;
 
 
 describe('enforce(): wrap async functions with runtime type checking',
   () => {
     before(() => {
-      types.SampleType = {
+      library.SampleType = {
         type: 'object',
         fields: {
           testField: {
@@ -19,7 +18,7 @@ describe('enforce(): wrap async functions with runtime type checking',
           },
         },
       };
-      types.SampleReturnType = {
+      library.SampleReturnType = {
         type: 'literal',
         value: 'hello',
       };
@@ -125,7 +124,7 @@ describe('enforce(): wrap async functions with runtime type checking',
         };
         const enforced = enforce(sampleFunc);
         enforced();
-      }, /require a callback/i);
+      }, /callback required/i);
 
       assert.throws(() => {
         const sampleFunc = () => {};
@@ -182,61 +181,52 @@ describe('enforce(): wrap async functions with runtime type checking',
       const enforced = enforce(sampleFunc);
       enforced(1, (err) => {
         assert.isOk(err);
-        assert.match(err.message, /Index 0: expected an array, got number/i);
+        assert.match(err.message, /an array, got number/i);
         return cb();
       });
     });
 
 
     it('should return callback errors on attempts to return invalid results', (cb) => {
-      const sampleFunc = (fnArg, cb) => cb(null, fnArg);
+      const sampleFunc = (fnArg, cb) => cb(null, ...fnArg);
       sampleFunc.$schema = {
         arguments: [
-          {
-            type: 'array',
-            elements: [
-              { type: 'integer' },
-              { type: 'string' },
-            ],
-          },
+          { type: 'array' },
         ],
-        callbackResult: [],
+        callbackResult: [
+          { type: 'integer' },
+          { type: 'string' },
+        ],
       };
       const enforced = enforce(sampleFunc);
-      enforced([1, 'test'], (err) => {
+      enforced([1, 2], (err) => {
         assert.isOk(err);
-        assert.match(err.message, /expected an array of length 0, got length 1/i);
+        assert.match(err.message, /expected a string, got number/i);
         return cb();
       });
     });
 
 
-    it('should allow conforming function to work', (cb) => {
-      const sampleFunc = (fnArg, cb) => cb(null, fnArg);
+    it('should allow conforming functions to work', (cb) => {
+      const sampleFunc = (fnArg, cb) => cb(null, ...fnArg);
       sampleFunc.$schema = {
         arguments: [
-          {
-            type: 'array',
-            elements: [
-              { type: 'integer' },
-              { type: 'string' },
-            ],
-          },
+          { type: 'array' },
         ],
         callbackResult: [
           {
-            type: 'array',
-            elements: [
-              { type: 'integer' },
-              { type: 'string' },
-            ],
+            type: 'object',
+            fields: {
+              res1: { type: 'integer' },
+              res2: { type: 'integer' },
+            },
           },
         ],
       };
       const enforced = enforce(sampleFunc);
-      enforced([1, 'test'], (err, echo) => {
-        assert.isNotOk(err);
-        assert.deepEqual(echo, [1, 'test']);
+      enforced([{ res1: 1, res2: true }], (err) => {
+        assert.isOk(err);
+        assert.match(err.message, /\.res2/);
         return cb();
       });
     });

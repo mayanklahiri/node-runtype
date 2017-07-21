@@ -1,7 +1,9 @@
 const _ = require('lodash'),
   assert = require('chai').assert,
   construct = require('..').construct,
-  types = require('..').library
+  loadIntoLibrary = require('../lib/loadIntoLibrary'),
+  library = require('..').library,
+  json = JSON.stringify
   ;
 
 
@@ -9,51 +11,124 @@ describe('construct(): check a value against a schema', () => {
   let sampleType;
 
   before(() => {
-    types.SampleType = {
-      type: 'object',
-      fields: {
-        testField: {
-          type: 'string',
+    loadIntoLibrary({
+      SampleType: {
+        type: 'object',
+        fields: {
+          testField: {
+            type: 'string',
+          },
+          optField: {
+            type: 'integer',
+            optional: true,
+          },
+          optObject: {
+            type: 'object',
+            optional: true,
+          },
         },
       },
-    };
+    });
     sampleType = {
-      testField: 'hello',
+      testField: 'abcd',
     };
   });
 
-  it('should construct primitive values', () => {
-    assert.strictEqual(123, construct({
-      type: 'integer',
-    }, 123));
-    assert.strictEqual(123.45, construct({
-      type: 'number',
-    }, 123.45));
-    assert.strictEqual(123, construct({
-      type: 'literal',
-      value: 123,
-    }, 123));
-    assert.strictEqual('abcd', construct({
-      type: 'string',
-    }, 'abcd'));
+  it('should construct good primitive values', () => {
+    const now = Date.now();
+    const buf = Buffer.from([1, 2, 3, 4]);
+    const goodPairs = [
+      // input, schema, expected output
+      [123, { type: 'integer' }, 123],
+      [-5, { type: 'integer' }, -5],
+      [123.45, { type: 'number' }, 123.45],
+      [undefined, { type: 'number', optional: true }, undefined],
+      ['abcd', { type: 'string' }, 'abcd'],
+      ['127.0.0.1', { type: 'ip_address' }, '127.0.0.1'],
+      [now, { type: 'epoch_timestamp_ms' }, now],
+      [buf, { type: 'buffer' }, buf],
+      [buf.toString('base64'), { type: 'base64_buffer' }, buf.toString('base64')],
+      [buf.toString('hex'), { type: 'hex_buffer' }, buf.toString('hex')],
+    ];
+
+    _.forEach(goodPairs, ([input, schema, output], idx) => {
+      try {
+        const rv = construct(schema, input);
+        assert.strictEqual(rv, output, `Test case ${idx}`);
+      } catch (e) {
+        throw new Error(
+          `Test case ${idx}: ${json({ input, schema })} is invalid: ${e}`);
+      }
+    });
+  });
+
+
+  it('should throw on bad primitive values', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const buf = Buffer.from([1, 2, 3]);
+    const badPairs = [
+      // input, schema, error message match regex
+      [123.45, { type: 'integer' }, /expected an integer/],
+      ['test', { type: 'integer' }, /expected a number/],
+      [buf, { type: 'integer' }, /expected a number/],
+      [buf.toString('hex'), { type: 'base64_buffer' }, /length/],
+      [buf.toString('base64'), { type: 'hex_buffer' }, /character set/],
+      [now, { type: 'epoch_timestamp_ms' }, /seconds rather than/],
+      [undefined, { type: 'hex_buffer' }, /is undefined/],
+    ];
+
+    _.forEach(badPairs, ([input, schema, match], idx) => {
+      try {
+        assert.throws(() => construct(schema, input), match);
+      } catch (e) {
+        throw new Error(
+          `Test case ${idx}: ${json({ input, schema })} is invalid: ${e}`);
+      }
+    });
+  });
+
+
+  it('should construct nested objects and arrays', () => {
+    const expected = {
+      nested: {
+        inner: [1, 2],
+      },
+    };
+    const schema = {
+      type: 'object',
+      fields: {
+        nested: {
+          type: 'object',
+          fields: {
+            inner: { type: 'array', elementType: 'integer' },
+          },
+        },
+      },
+    };
+    const input = {
+      nested: {
+        inner: [1, 2],
+        extra: true,
+      },
+    };
+
+    // In non-strict mode, do not throw due to the 'extra' property.
+    // In strict mode, throw on unrecognized field 'extra'.
+    assert.deepEqual(construct(schema, input), expected);
+    assert.throws(
+      () => construct(schema, input, { strict: true }),
+      /"nested": key "extra" is not in the schema/i);
   });
 
 
   it('should construct from explicit and library typedefs', () => {
-    const stImplicit = construct('SampleType', sampleType);
-    const stExplicit = construct(types.SampleType, sampleType);
-    assert.deepEqual(stImplicit, stExplicit);
+    assert.deepEqual(
+      construct('SampleType', sampleType), // implict schema lookup in library
+      construct(library.SampleType, sampleType));
   });
 
 
-  it('should throw on unrecognized fields', () => {
-    const badSampleType = _.clone(sampleType);
-    badSampleType.newField = 123;
-    assert.throws(() => { construct('SampleType', badsampleType); });
-  });
-
-
-  it('should throw on unrecognized types', () => {
+  it('should throw on unrecognized library type', () => {
     assert.throws(() => { construct('InvalidType', sampleType); });
     assert.throws(() => {
       construct({
@@ -64,7 +139,7 @@ describe('construct(): check a value against a schema', () => {
           },
         },
       }, { badref: 123 });
-    }, /unknown type/i);
+    }, /unknown schema type/i);
   });
 
 
@@ -79,7 +154,7 @@ describe('construct(): check a value against a schema', () => {
     delete badSampleType.testField;
     assert.throws(
       () => { construct('SampleType', badSampleType); },
-      /expected a string, got undefined/i);
+      /required value .* undefined/i);
   });
 
 
@@ -101,13 +176,13 @@ describe('construct(): check a value against a schema', () => {
     const nestedTypeDef = {
       type: 'object',
       fields: {
-        SampleType: {
+        newFieldName: {
           type: 'SampleType',
         },
       },
     };
-    const nested = construct(nestedTypeDef, { SampleType: sampleType });
-    assert.deepEqual(nested, { SampleType: sampleType });
+    const nested = construct(nestedTypeDef, { newFieldName: sampleType });
+    assert.deepEqual(nested, { newFieldName: sampleType });
   });
 
 
@@ -137,12 +212,12 @@ describe('construct(): check a value against a schema', () => {
           defInner: 'ghi',
         },
       });
-      assert.deepEqual(rv, {
+      assert.deepEqual({
         abc: 123,
         def: {
           defInner: 'ghi',
         },
-      });
+      }, rv);
     });
 
     assert.throws(() => {
@@ -166,27 +241,25 @@ describe('construct(): check a value against a schema', () => {
 
 
   it('should construct uniformly typed arrays', () => {
-    const uniformTyped = {
+    const uniformArrayType = {
       type: 'array',
       elementType: 'SampleType',
-      minElements: 3,
-      maxElements: 4,
+      minElements: 2,
+      maxElements: 3,
     };
+
+    assert.throws(() => {
+      construct(uniformArrayType, [sampleType, sampleType, sampleType, sampleType]);
+    }, /too large/i);
+
+    assert.throws(() => {
+      construct(uniformArrayType, [sampleType]);
+    }, /too small/i);
+
     assert.doesNotThrow(() => {
-      construct(uniformTyped, [sampleType, sampleType, sampleType]);
-      construct(uniformTyped, [sampleType, sampleType, sampleType, sampleType]);
+      construct(uniformArrayType, [sampleType, sampleType]);
+      construct(uniformArrayType, [sampleType, sampleType, sampleType]);
     });
-    assert.throws(() => {
-      construct(uniformTyped, [sampleType, sampleType, sampleType, sampleType, sampleType]);
-    }, /<=/i);
-    assert.throws(() => {
-      construct(uniformTyped, [sampleType, sampleType]);
-    }, />=/i);
-    const badSampleType = _.clone(sampleType);
-    delete badSampleType.testField;
-    assert.throws(() => {
-      construct(uniformTyped, [sampleType, sampleType, badSampleType]);
-    }, /Index 2.testField: expected a string, got undefined./i);
   });
 
 
@@ -198,18 +271,21 @@ describe('construct(): check a value against a schema', () => {
         { type: 'SampleType' },
       ],
     };
+
     assert.doesNotThrow(() => {
       construct(perIndexTyped, ['a_literal_string', sampleType]);
     });
-    assert.throws(() => {
-      construct(perIndexTyped, [sampleType, sampleType]);
-    }, /Index 0/i);
-    assert.throws(() => {
-      construct(perIndexTyped, [sampleType]);
-    }, /expected an array of length 2/i);
-    assert.throws(() => {
-      construct(perIndexTyped);
-    }, /expected an array/i);
+
+    assert.throws(
+      () => construct(perIndexTyped, [sampleType, sampleType]), /expected literal/);
+
+    assert.throws(
+      () => construct(perIndexTyped, ['junk']), /expected literal/);
+
+
+    assert.throws(
+      () => construct(perIndexTyped, ['a_literal_string', sampleType, sampleType], { strict: true }),
+      /more elements than allowed/);
   });
 
 
@@ -222,6 +298,34 @@ describe('construct(): check a value against a schema', () => {
       construct(untyped, [sampleType, sampleType]);
       construct(untyped, [sampleType]);
       construct(untyped, []);
+    });
+  });
+
+  it('should return all validation errors', () => {
+    assert.doesNotThrow(() => {
+      try {
+        construct('SampleType', {
+          testField: 123,
+          optField: 'wrong-type',
+          optObject: 'another-wrong-type',
+        }, { strict: true });
+      } catch (e) {
+        const allErrors = _.map(e.allErrors, (runtypeErr) => {
+          return {
+            path: runtypeErr.path,
+            message: runtypeErr.message,
+            code: runtypeErr.code,
+          };
+        });
+        assert.deepEqual(
+          _.map(allErrors, 'code'), ['bad_value', 'bad_value', 'bad_value']);
+        assert.deepEqual(allErrors[0].path, ['testField']);
+        assert.match(allErrors[0].message, /got number/i);
+        assert.deepEqual(allErrors[1].path, ['optField']);
+        assert.match(allErrors[1].message, /got string/i);
+        assert.deepEqual(allErrors[2].path, ['optObject']);
+        assert.match(allErrors[2].message, /got string/i);
+      }
     });
   });
 });
